@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- App Information -->
+    <key>CFBundleDevelopmentRegion</key>
+    <string>$(DEVELOPMENT_LANGUAGE)</string>
+    <key>CFBundleExecutable</key>
+    <string>$(EXECUTABLE_NAME)</string>
+    <key>CFBundleIdentifier</key>
+    <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>$(PRODUCT_NAME)</string>
+    <key>CFBundlePackageType</key>
+    <string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
+    <key>CFBundleShortVersionString</key>
+    <string>0.1.0</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>LSRequiresIPhoneOS</key>
+    <true/>
+    <key>UIApplicationSceneManifest</key>
+    <dict>
+        <key>UIApplicationSupportsMultipleScenes</key>
+        <false/>
+    </dict>
+    <key>UILaunchScreen</key>
+    <dict/>
+    <key>UIRequiredDeviceCapabilities</key>
+    <array>
+        <string>armv7</string>
+    </array>
+    <key>UISupportedInterfaceOrientations</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+        <string>UIInterfaceOrientationLandscapeLeft</string>
+        <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
+    <key>UISupportedInterfaceOrientations~ipad</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+        <string>UIInterfaceOrientationPortraitUpsideDown</string>
+        <string>UIInterfaceOrientationLandscapeLeft</string>
+        <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
+
+    <!-- Privacy Permissions - Each with clear user benefit explanation -->
+    
+    <!-- Location - Always (for background tracking) -->
+    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+    <string>SmartDiary benötigt Zugriff auf deinen Standort, um Ausflüge automatisch zu erfassen, Tracks aufzuzeichnen und deine Einträge mit Ortsangaben zu versehen. Du kannst diese Funktion jederzeit in den Einstellungen deaktivieren.</string>
+    
+    <!-- Location - When In Use -->
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>SmartDiary nutzt deinen Standort, um aktuelle Einträge mit Ortsangaben zu versehen und dir Informationen über nahegelegene Sehenswürdigkeiten anzuzeigen.</string>
+    
+    <!-- Photo Library -->
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>SmartDiary möchte auf deine Fotos zugreifen, um sie automatisch deinen Tagebucheinträgen basierend auf Zeit und Ort zuzuordnen. Nur Fotos aus dem jeweiligen Zeitraum werden berücksichtigt.</string>
+    
+    <!-- Photo Library Add Only -->
+    <key>NSPhotoLibraryAddUsageDescription</key>
+    <string>SmartDiary möchte aufgenommene Fotos in deiner Mediathek speichern, damit du sie auch außerhalb der App nutzen kannst.</string>
+    
+    <!-- Camera -->
+    <key>NSCameraUsageDescription</key>
+    <string>SmartDiary benötigt Zugriff auf deine Kamera, um Fotos direkt aus der App aufzunehmen und deinen Einträgen hinzuzufügen.</string>
+    
+    <!-- Motion & Activity -->
+    <key>NSMotionUsageDescription</key>
+    <string>SmartDiary nutzt Bewegungsdaten, um automatisch zu erkennen, ob du gerade gehst, Rad fährst oder dich in einem Fahrzeug befindest. Diese Information bereichert deine Tagebucheinträge mit Kontextdaten.</string>
+    
+    <!-- HealthKit (optional) -->
+    <key>NSHealthShareUsageDescription</key>
+    <string>Mit HealthKit-Zugriff kann SmartDiary deine Aktivitätsdaten (Schritte, zurückgelegte Distanz) in die Tagesübersichten einbeziehen. Dies ist vollständig optional.</string>
+    
+    <key>NSHealthUpdateUsageDescription</key>
+    <string>SmartDiary schreibt keine Daten in HealthKit.</string>
+    
+    <!-- Background Modes -->
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>location</string>
+        <string>fetch</string>
+        <string>processing</string>
+    </array>
+    
+    <!-- Background Task Identifiers -->
+    <key>BGTaskSchedulerPermittedIdentifiers</key>
+    <array>
+        <string>com.smartdiary.sync</string>
+        <string>com.smartdiary.cleanup</string>
+    </array>
+</dict>
+</plist>
