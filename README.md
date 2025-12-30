@@ -58,6 +58,14 @@ Alle verbindlichen Projektregeln befinden sich im Ordner **`/docs`**:
 
 ## 🚀 Quick Start (Development)
 
+### Voraussetzungen
+
+- Docker Engine 20.10+
+- Docker Compose V2 (integriert in Docker Desktop oder separat installiert)
+
+> ⚠️ **Wichtig**: Das Projekt erfordert **Docker Compose V2** (`docker compose` Befehl).
+> Die alte Python-basierte Version `docker-compose` (v1.x) ist nicht kompatibel mit Python 3.12+.
+
 ### 1. Konfiguration
 
 ```bash
