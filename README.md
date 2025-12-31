@@ -86,6 +86,10 @@ Dies startet alle Services:
 - **web** (Port 3000): Next.js Web Dashboard
 - **deployer**: Automatischer Git-Deployment
 
+> ⚠️ **Bei Datenbank-Fehlern**: Falls "password authentication failed" erscheint, wurden die
+> Volumes mit anderen Credentials initialisiert. Lösung: `docker compose down && docker volume rm diary_postgres-data && docker compose up -d`
+> Weitere Details unter [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#fehlerbehebung).
+
 ### 3. Zugriff
 
 - API: http://localhost:8000
