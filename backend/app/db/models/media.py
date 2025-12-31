@@ -32,7 +32,7 @@ class Media(Base):
     longitude = Column(Float, nullable=True)
     
     # Metadata (EXIF, etc.)
-    metadata = Column(JSON, nullable=True)
+    file_metadata = Column(JSON, nullable=True)
     
     # Timestamps
     captured_at = Column(DateTime, nullable=True)
