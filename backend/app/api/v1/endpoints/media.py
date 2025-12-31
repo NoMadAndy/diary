@@ -67,7 +67,7 @@ async def create_media(
         thumbnail_key=media_in.thumbnail_key,
         latitude=media_in.latitude,
         longitude=media_in.longitude,
-        metadata=media_in.metadata,
+        file_metadata=media_in.file_metadata,
         captured_at=media_in.captured_at,
     )
     db.add(media)

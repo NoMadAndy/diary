@@ -22,7 +22,7 @@ class MediaCreate(MediaBase):
     file_size: Optional[int] = None
     storage_key: str
     thumbnail_key: Optional[str] = None
-    metadata: Optional[dict] = None
+    file_metadata: Optional[dict] = None
 
 
 class MediaUpdate(BaseModel):
@@ -44,7 +44,7 @@ class MediaResponse(BaseModel):
     file_size: Optional[int] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
-    metadata: Optional[dict] = None
+    file_metadata: Optional[dict] = None
     captured_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
