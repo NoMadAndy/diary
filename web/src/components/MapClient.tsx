@@ -4,18 +4,16 @@ import { useEffect, useState, useRef } from 'react'
 import { useApp, useLocation, useTracks } from '@/lib/context'
 import type { GuidePOIResponse } from '@/lib/types'
 
-// Dynamic import for Leaflet to avoid SSR issues
-let L: typeof import('leaflet') | null = null
-
 export default function MapClient() {
   const { isAuthenticated, api, settings } = useApp()
   const { location, startTracking, stopTracking } = useLocation()
   const { tracks, loadTracks } = useTracks()
 
   const mapContainerRef = useRef<HTMLDivElement>(null)
-  const mapRef = useRef<L.Map | null>(null)
-  const userMarkerRef = useRef<L.Marker | null>(null)
-  const trackLayerRef = useRef<L.LayerGroup | null>(null)
+  const leafletRef = useRef<typeof import('leaflet') | null>(null)
+  const mapRef = useRef<import('leaflet').Map | null>(null)
+  const userMarkerRef = useRef<import('leaflet').Marker | null>(null)
+  const trackLayerRef = useRef<import('leaflet').LayerGroup | null>(null)
 
   const [isMapReady, setIsMapReady] = useState(false)
   const [guideText, setGuideText] = useState<string | null>(null)
@@ -28,32 +26,31 @@ export default function MapClient() {
     const initMap = async () => {
       // Dynamic import Leaflet
       const leaflet = await import('leaflet')
-      await import('leaflet/dist/leaflet.css')
-      L = leaflet
+      leafletRef.current = leaflet
 
       // Fix default marker icons
-      delete (L.Icon.Default.prototype as any)._getIconUrl
-      L.Icon.Default.mergeOptions({
+      delete (leaflet.Icon.Default.prototype as any)._getIconUrl
+      leaflet.Icon.Default.mergeOptions({
         iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
         iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
         shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
       })
 
       // Create map
-      const map = L.map(mapContainerRef.current!, {
+      const map = leaflet.map(mapContainerRef.current!, {
         center: [48.1351, 11.5820], // Munich as default
         zoom: 12,
         zoomControl: true,
       })
 
       // Add tile layer
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      leaflet.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
         maxZoom: 19,
       }).addTo(map)
 
       // Create layer for tracks
-      trackLayerRef.current = L.layerGroup().addTo(map)
+      trackLayerRef.current = leaflet.layerGroup().addTo(map)
 
       mapRef.current = map
       setIsMapReady(true)
@@ -66,14 +63,14 @@ export default function MapClient() {
             map.setView([latitude, longitude], 14)
 
             // Add user marker
-            const userIcon = L.divIcon({
+            const userIcon = leaflet.divIcon({
               className: 'user-location-marker',
               html: '<div class="w-4 h-4 bg-blue-500 border-2 border-white rounded-full shadow-lg"></div>',
               iconSize: [16, 16],
               iconAnchor: [8, 8],
             })
 
-            userMarkerRef.current = L.marker([latitude, longitude], { icon: userIcon })
+            userMarkerRef.current = leaflet.marker([latitude, longitude], { icon: userIcon })
               .addTo(map)
               .bindPopup('Dein Standort')
           },
@@ -96,21 +93,22 @@ export default function MapClient() {
 
   // Update user location on map
   useEffect(() => {
-    if (!mapRef.current || !L || !location.current) return
+    const leaflet = leafletRef.current
+    if (!mapRef.current || !leaflet || !location.current) return
 
     const { latitude, longitude } = location.current
 
     if (userMarkerRef.current) {
       userMarkerRef.current.setLatLng([latitude, longitude])
     } else {
-      const userIcon = L.divIcon({
+      const userIcon = leaflet.divIcon({
         className: 'user-location-marker',
         html: '<div class="w-4 h-4 bg-blue-500 border-2 border-white rounded-full shadow-lg pulse-animation"></div>',
         iconSize: [16, 16],
         iconAnchor: [8, 8],
       })
 
-      userMarkerRef.current = L.marker([latitude, longitude], { icon: userIcon })
+      userMarkerRef.current = leaflet.marker([latitude, longitude], { icon: userIcon })
         .addTo(mapRef.current)
         .bindPopup('Dein Standort')
     }
@@ -118,7 +116,8 @@ export default function MapClient() {
 
   // Draw tracks
   useEffect(() => {
-    if (!mapRef.current || !L || !trackLayerRef.current) return
+    const leaflet = leafletRef.current
+    if (!mapRef.current || !leaflet || !trackLayerRef.current) return
 
     // Clear existing tracks
     trackLayerRef.current.clearLayers()
@@ -130,7 +129,7 @@ export default function MapClient() {
       const latlngs = track.track_data.map((point) => [point.lat, point.lng] as [number, number])
       const color = `hsl(${(index * 60) % 360}, 70%, 50%)`
 
-      const polyline = L.polyline(latlngs, {
+      const polyline = leaflet.polyline(latlngs, {
         color,
         weight: 4,
         opacity: 0.8,
@@ -148,7 +147,7 @@ export default function MapClient() {
 
       // Add start/end markers
       if (latlngs.length > 0) {
-        const startMarker = L.circleMarker(latlngs[0], {
+        const startMarker = leaflet.circleMarker(latlngs[0], {
           radius: 6,
           fillColor: color,
           color: '#fff',
@@ -159,7 +158,7 @@ export default function MapClient() {
         trackLayerRef.current?.addLayer(startMarker)
 
         if (latlngs.length > 1) {
-          const endMarker = L.circleMarker(latlngs[latlngs.length - 1], {
+          const endMarker = leaflet.circleMarker(latlngs[latlngs.length - 1], {
             radius: 6,
             fillColor: '#ef4444',
             color: '#fff',

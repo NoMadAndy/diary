@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
+import 'leaflet/dist/leaflet.css'
 import PwaRegister from './pwa-register'
 import AppWrapper from '@/components/AppWrapper'
 
