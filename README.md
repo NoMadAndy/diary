@@ -14,9 +14,15 @@ um Erlebnisse verständlich zu strukturieren, zusammenzufassen und in Geschichte
 |-----------|-------------|
 | iOS App | SwiftUI App für automatisches & manuelles Logging |
 | Backend | FastAPI Service, Docker-basiert |
-| Web Dashboard | Responsive Web-App für Auswertungen & Planung |
+| Web Dashboard | Responsive Web-App (PWA) für Auswertungen & Planung |
 | KI Engine | OpenAI-gestützte Analysen, Zusammenfassungen, Reiseführer |
 | Deployment | Self-hosted auf Ubuntu mit automatischem Git-Deploy |
+
+### Web (PWA & Sensoren)
+
+- Die Web-App ist als PWA installierbar ("Installieren" / "Zum Home-Bildschirm").
+- Unter `/sensors` gibt es eine Capability-Seite: Sie zeigt nur Sensor-/Gerätefunktionen an, die der aktuelle Browser wirklich unterstützt.
+- Permissions werden nie automatisch beim Laden angefragt (Opt-in per Button). Viele APIs benötigen HTTPS oder `localhost`.
 
 ---
 

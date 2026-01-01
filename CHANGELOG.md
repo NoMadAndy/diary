@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - API endpoints for authentication, entries, tracks, media, and AI features
 - Changelog API endpoint (`/api/v1/meta/changelog`)
 - Web dashboard skeleton (Next.js)
+- PWA-Basis für das Web-Dashboard (Manifest, Service Worker, App-Installation)
+- Sensor-/Capabilities-Seite `/sensors` mit Feature-Detection und Permission-Flows (iOS/WebKit per Tap bestätigen)
 - Deployer container for automatic git-based deployment
 - Auto-commit tooling in `/tools`
 
