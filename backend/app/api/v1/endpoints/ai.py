@@ -99,9 +99,8 @@ async def suggest_tags(
 @router.post("/trips/suggest", response_model=TripSuggestionResponse)
 async def suggest_trip(
     request: TripSuggestionRequest,
-    current_user: User = Depends(get_current_user),
 ):
-    """Generate a trip suggestion with route and POIs."""
+    """Generate a trip suggestion with route and POIs (public endpoint for demo)."""
     suggestion = await ai_service.suggest_trip(
         start_location=request.start_location,
         end_location=request.end_location,
