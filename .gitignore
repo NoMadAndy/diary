@@ -23,6 +23,9 @@ wheels/
 venv/
 ENV/
 
+# Allow web/src/lib
+!web/src/lib/
+
 # Node.js
 node_modules/
 npm-debug.log*

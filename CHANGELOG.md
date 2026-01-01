@@ -20,6 +20,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Sensor-/Capabilities-Seite `/sensors` mit Feature-Detection und Permission-Flows (iOS/WebKit per Tap bestätigen)
 - Deployer container for automatic git-based deployment
 - Auto-commit tooling in `/tools`
+- **PWA mit vollständiger iOS-App-Funktionsparität:**
+  - Timeline-View: Einträge-Liste mit Mood-Anzeige, Tags und Pull-to-Refresh
+  - Record-View: Neuen Eintrag erstellen mit Content, Titel, Mood, Tags, Foto, GPS-Track
+  - Map-View: Leaflet-Karte mit Tracks, User-Location, Reiseführer-Button (AI)
+  - Settings-View: Login/Logout, API-URL, Datenschutz-Toggles, KI-Einstellungen, Sync-Status
+  - Bottom Navigation: Mobile-friendly Tab-Leiste wie in der iOS-App
+  - Offline-Support: IndexedDB für pending Entries/Tracks, automatische Sync-Queue
+  - API-Service: TypeScript Client für alle Backend-Endpoints mit Token-Refresh
+  - App-Context: Globaler State für Auth, Settings, Entries, Tracks, Location, Sync
 
 ### Security
 - JWT-based authentication with refresh tokens
