@@ -9,25 +9,74 @@ export default function SettingsClient() {
   const { user, isAuthenticated, login, logout } = useAuth()
   const { api } = useApp()
 
+  // Auth form state
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [loginError, setLoginError] = useState<string | null>(null)
-  const [isLoggingIn, setIsLoggingIn] = useState(false)
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [fullName, setFullName] = useState('')
+  const [authError, setAuthError] = useState<string | null>(null)
+  const [authSuccess, setAuthSuccess] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [showApiUrl, setShowApiUrl] = useState(false)
+
+  const resetForm = () => {
+    setEmail('')
+    setPassword('')
+    setConfirmPassword('')
+    setFullName('')
+    setAuthError(null)
+    setAuthSuccess(null)
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoginError(null)
-    setIsLoggingIn(true)
+    setAuthError(null)
+    setAuthSuccess(null)
+    setIsSubmitting(true)
 
     try {
       await login(email, password)
-      setEmail('')
-      setPassword('')
+      resetForm()
     } catch (err) {
-      setLoginError(err instanceof Error ? err.message : 'Login fehlgeschlagen')
+      setAuthError(err instanceof Error ? err.message : 'Login fehlgeschlagen')
     } finally {
-      setIsLoggingIn(false)
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setAuthError(null)
+    setAuthSuccess(null)
+
+    // Validate passwords match
+    if (password !== confirmPassword) {
+      setAuthError('Passwörter stimmen nicht überein')
+      return
+    }
+
+    // Validate password strength
+    if (password.length < 8) {
+      setAuthError('Passwort muss mindestens 8 Zeichen lang sein')
+      return
+    }
+
+    setIsSubmitting(true)
+
+    try {
+      // Register the user
+      await api.register(email, password, fullName || undefined)
+      
+      // Auto-login after successful registration
+      await login(email, password)
+      
+      setAuthSuccess('Registrierung erfolgreich!')
+      resetForm()
+    } catch (err) {
+      setAuthError(err instanceof Error ? err.message : 'Registrierung fehlgeschlagen')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -86,44 +135,184 @@ export default function SettingsClient() {
             </div>
           </div>
         ) : (
-          <form onSubmit={handleLogin} className="space-y-4">
-            {loginError && (
-              <div className="p-3 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 rounded-lg text-sm">
-                {loginError}
+          <div className="space-y-4">
+            {/* Login/Register Tabs */}
+            <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+              <button
+                type="button"
+                onClick={() => { setAuthMode('login'); setAuthError(null); setAuthSuccess(null); }}
+                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition ${
+                  authMode === 'login'
+                    ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                }`}
+              >
+                Anmelden
+              </button>
+              <button
+                type="button"
+                onClick={() => { setAuthMode('register'); setAuthError(null); setAuthSuccess(null); }}
+                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition ${
+                  authMode === 'register'
+                    ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                }`}
+              >
+                Registrieren
+              </button>
+            </div>
+
+            {/* Success Message */}
+            {authSuccess && (
+              <div className="p-3 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded-lg text-sm flex items-center">
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                {authSuccess}
               </div>
             )}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                E-Mail
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Passwort
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={isLoggingIn}
-              className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium rounded-lg transition"
-            >
-              {isLoggingIn ? 'Wird angemeldet...' : 'Anmelden'}
-            </button>
-          </form>
+
+            {/* Error Message */}
+            {authError && (
+              <div className="p-3 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 rounded-lg text-sm">
+                {authError}
+              </div>
+            )}
+
+            {/* Login Form */}
+            {authMode === 'login' && (
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    E-Mail
+                  </label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    autoComplete="email"
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Passwort
+                  </label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    autoComplete="current-password"
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium rounded-lg transition flex items-center justify-center"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                      Wird angemeldet...
+                    </>
+                  ) : (
+                    'Anmelden'
+                  )}
+                </button>
+              </form>
+            )}
+
+            {/* Register Form */}
+            {authMode === 'register' && (
+              <form onSubmit={handleRegister} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Name (optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Max Mustermann"
+                    autoComplete="name"
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    E-Mail
+                  </label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    autoComplete="email"
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Passwort
+                  </label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    minLength={8}
+                    autoComplete="new-password"
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Mindestens 8 Zeichen
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Passwort bestätigen
+                  </label>
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    autoComplete="new-password"
+                    className={`w-full px-4 py-2 rounded-lg border dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                      confirmPassword && password !== confirmPassword
+                        ? 'border-red-500'
+                        : 'border-gray-300 dark:border-gray-600'
+                    }`}
+                  />
+                  {confirmPassword && password !== confirmPassword && (
+                    <p className="mt-1 text-xs text-red-500">
+                      Passwörter stimmen nicht überein
+                    </p>
+                  )}
+                </div>
+                <button
+                  type="submit"
+                  disabled={isSubmitting || (confirmPassword !== '' && password !== confirmPassword)}
+                  className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-medium rounded-lg transition flex items-center justify-center"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                      Wird registriert...
+                    </>
+                  ) : (
+                    'Konto erstellen'
+                  )}
+                </button>
+                <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+                  Mit der Registrierung akzeptierst du, dass deine Daten auf deinem eigenen Server gespeichert werden.
+                </p>
+              </form>
+            )}
+          </div>
         )}
       </div>
 
