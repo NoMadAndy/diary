@@ -72,7 +72,9 @@ update_repo() {
     else
         log "Fetching updates..."
         cd "$REPO_DIR"
-        git fetch origin "$GIT_BRANCH"
+        git fetch origin "$GIT_BRANCH" --force
+        log "Local HEAD before reset: $(git rev-parse HEAD)"
+        log "Remote HEAD: $(git rev-parse origin/$GIT_BRANCH)"
     fi
 }
 
@@ -123,15 +125,28 @@ deploy() {
     log "Deploying commit: $new_sha"
     
     cd "$REPO_DIR"
-    git checkout "$GIT_BRANCH"
+    
+    # Ensure we have a clean state and the latest code
+    git fetch origin "$GIT_BRANCH" --force
+    git checkout "$GIT_BRANCH" --force
     git reset --hard "origin/$GIT_BRANCH"
+    git clean -fd
     
     log "Current directory: $(pwd)"
-    log "Files: $(ls -la)"
+    log "Current HEAD after reset: $(git rev-parse HEAD)"
+    log "Expected SHA: $new_sha"
+    
+    # Verify we have the right commit
+    local current_sha=$(git rev-parse HEAD)
+    if [ "$current_sha" != "$new_sha" ]; then
+        error "SHA mismatch! Expected $new_sha but got $current_sha"
+        return 1
+    fi
     
     log "Rebuilding and restarting api and web services..."
     # Build and restart only api and web (not deployer, db, minio)
-    docker compose -f "$REPO_DIR/docker-compose.yml" build api web
+    # Use --no-cache to ensure fresh build with new code
+    docker compose -f "$REPO_DIR/docker-compose.yml" build --no-cache api web
     docker compose -f "$REPO_DIR/docker-compose.yml" up -d --force-recreate --no-deps api web
     
     # Wait for health check
