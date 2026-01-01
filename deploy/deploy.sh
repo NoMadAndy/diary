@@ -126,17 +126,13 @@ deploy() {
     git checkout "$GIT_BRANCH"
     git reset --hard "origin/$GIT_BRANCH"
     
-    log "Stopping old containers..."
-    docker compose down --remove-orphans 2>/dev/null || true
+    log "Current directory: $(pwd)"
+    log "Files: $(ls -la)"
     
-    log "Removing conflicting containers..."
-    docker rm -f smartdiary-api smartdiary-web smartdiary-db smartdiary-minio smartdiary-deployer 2>/dev/null || true
-    
-    log "Building containers..."
-    docker compose build --no-cache api web
-    
-    log "Starting services..."
-    docker compose up -d --force-recreate --remove-orphans
+    log "Rebuilding and restarting api and web services..."
+    # Build and restart only api and web (not deployer, db, minio)
+    docker compose -f "$REPO_DIR/docker-compose.yml" build api web
+    docker compose -f "$REPO_DIR/docker-compose.yml" up -d --force-recreate --no-deps api web
     
     # Wait for health check
     if check_health; then
