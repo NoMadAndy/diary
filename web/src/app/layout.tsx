@@ -11,10 +11,8 @@ export const metadata: Metadata = {
   title: 'SmartDiary - PWA',
   description: 'KI-gestütztes Tagebuch-, Reise- und Lebenslog-System',
   manifest: '/manifest.webmanifest',
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: 'default',
-    title: 'SmartDiary',
+  other: {
+    'mobile-web-app-capable': 'yes',
   },
   formatDetection: {
     telephone: false,
