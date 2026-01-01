@@ -46,44 +46,22 @@ function formatNumber(value: number, digits = 6) {
 }
 
 export default function SensorsClient() {
-  const supports = useMemo(() => {
-    if (typeof window === 'undefined') {
-      return {
-        geolocation: false,
-        orientation: false,
-        motion: false,
-        camera: false,
-        microphone: false,
-        notifications: false,
-        share: false,
-        clipboard: false,
-        vibration: false,
-        wakeLock: false,
-        battery: false,
-        connection: false,
-        storage: false,
-      }
-    }
-
-    const hasMedia = !!navigator.mediaDevices?.getUserMedia
-    const hasClipboard = !!navigator.clipboard
-
-    return {
-      geolocation: 'geolocation' in navigator,
-      orientation: 'DeviceOrientationEvent' in window,
-      motion: 'DeviceMotionEvent' in window,
-      camera: hasMedia,
-      microphone: hasMedia,
-      notifications: 'Notification' in window,
-      share: typeof navigator.share === 'function',
-      clipboard: hasClipboard,
-      vibration: typeof navigator.vibrate === 'function',
-      wakeLock: 'wakeLock' in navigator,
-      battery: 'getBattery' in navigator,
-      connection: 'connection' in navigator,
-      storage: !!navigator.storage?.estimate,
-    }
-  }, [])
+  // Start with null to avoid hydration mismatch - computed only on client
+  const [supports, setSupports] = useState<{
+    geolocation: boolean
+    orientation: boolean
+    motion: boolean
+    camera: boolean
+    microphone: boolean
+    notifications: boolean
+    share: boolean
+    clipboard: boolean
+    vibration: boolean
+    wakeLock: boolean
+    battery: boolean
+    connection: boolean
+    storage: boolean
+  } | null>(null)
 
   const [secureContext, setSecureContext] = useState(true)
 
@@ -122,6 +100,25 @@ export default function SensorsClient() {
     window.addEventListener('online', onOnline)
     window.addEventListener('offline', onOffline)
 
+    // Compute supports on client only to avoid hydration mismatch
+    const hasMedia = !!navigator.mediaDevices?.getUserMedia
+    const hasClipboard = !!navigator.clipboard
+    setSupports({
+      geolocation: 'geolocation' in navigator,
+      orientation: 'DeviceOrientationEvent' in window,
+      motion: 'DeviceMotionEvent' in window,
+      camera: hasMedia,
+      microphone: hasMedia,
+      notifications: 'Notification' in window,
+      share: typeof navigator.share === 'function',
+      clipboard: hasClipboard,
+      vibration: typeof navigator.vibrate === 'function',
+      wakeLock: 'wakeLock' in navigator,
+      battery: 'getBattery' in navigator,
+      connection: 'connection' in navigator,
+      storage: !!navigator.storage?.estimate,
+    })
+
     return () => {
       window.removeEventListener('online', onOnline)
       window.removeEventListener('offline', onOffline)
@@ -129,31 +126,31 @@ export default function SensorsClient() {
   }, [])
 
   useEffect(() => {
-    if (!supports.geolocation) return
+    if (!supports?.geolocation) return
     queryPermission('geolocation').then(setGeoPermission)
-  }, [supports.geolocation])
+  }, [supports?.geolocation])
 
   useEffect(() => {
-    if (!supports.notifications) return
+    if (!supports?.notifications) return
     try {
       setNotifPermission(normalizeNotificationPermission((Notification as any).permission))
     } catch {
       setNotifPermission('unknown')
     }
-  }, [supports.notifications])
+  }, [supports?.notifications])
 
   useEffect(() => {
-    if (!supports.camera) return
+    if (!supports?.camera) return
     queryPermission('camera' as PermissionName).then(setCameraPermission)
-  }, [supports.camera])
+  }, [supports?.camera])
 
   useEffect(() => {
-    if (!supports.microphone) return
+    if (!supports?.microphone) return
     queryPermission('microphone' as PermissionName).then(setMicPermission)
-  }, [supports.microphone])
+  }, [supports?.microphone])
 
   useEffect(() => {
-    if (!supports.connection) return
+    if (!supports?.connection) return
     const anyNav = navigator as any
     const update = () => {
       const c = anyNav.connection
@@ -168,10 +165,10 @@ export default function SensorsClient() {
     update()
     anyNav.connection?.addEventListener?.('change', update)
     return () => anyNav.connection?.removeEventListener?.('change', update)
-  }, [supports.connection])
+  }, [supports?.connection])
 
   useEffect(() => {
-    if (!supports.storage) return
+    if (!supports?.storage) return
     const run = async () => {
       try {
         const est = await navigator.storage.estimate()
@@ -181,10 +178,10 @@ export default function SensorsClient() {
       }
     }
     run()
-  }, [supports.storage])
+  }, [supports?.storage])
 
   useEffect(() => {
-    if (!supports.battery) return
+    if (!supports?.battery) return
     let battery: any
     let cancelled = false
 
@@ -221,10 +218,10 @@ export default function SensorsClient() {
         battery.removeEventListener('chargingchange', () => {})
       }
     }
-  }, [supports.battery])
+  }, [supports?.battery])
 
   const stopGeo = () => {
-    if (geoWatchId.current != null && supports.geolocation) {
+    if (geoWatchId.current != null && supports?.geolocation) {
       navigator.geolocation.clearWatch(geoWatchId.current)
       geoWatchId.current = null
     }
@@ -232,7 +229,7 @@ export default function SensorsClient() {
   }
 
   const startGeo = () => {
-    if (!supports.geolocation) return
+    if (!supports?.geolocation) return
 
     setGeoState({ status: 'idle' })
     setGeoPermission('unknown')
@@ -255,7 +252,7 @@ export default function SensorsClient() {
   }
 
   const requestMotion = async () => {
-    if (!supports.motion) return
+    if (!supports?.motion) return
     try {
       const anyDME = DeviceMotionEvent as any
       if (typeof anyDME.requestPermission === 'function') {
@@ -270,7 +267,7 @@ export default function SensorsClient() {
   }
 
   const requestOrientation = async () => {
-    if (!supports.orientation) return
+    if (!supports?.orientation) return
     try {
       const anyDOE = DeviceOrientationEvent as any
       if (typeof anyDOE.requestPermission === 'function') {
@@ -285,7 +282,7 @@ export default function SensorsClient() {
   }
 
   useEffect(() => {
-    if (!supports.motion) return
+    if (!supports?.motion) return
     if (motionPermission !== 'granted') return
 
     const handler = (e: DeviceMotionEvent) => {
@@ -296,10 +293,10 @@ export default function SensorsClient() {
 
     window.addEventListener('devicemotion', handler)
     return () => window.removeEventListener('devicemotion', handler)
-  }, [supports.motion, motionPermission])
+  }, [supports?.motion, motionPermission])
 
   useEffect(() => {
-    if (!supports.orientation) return
+    if (!supports?.orientation) return
     if (orientationPermission !== 'granted') return
 
     const handler = (e: DeviceOrientationEvent) => {
@@ -312,7 +309,7 @@ export default function SensorsClient() {
 
     window.addEventListener('deviceorientation', handler)
     return () => window.removeEventListener('deviceorientation', handler)
-  }, [supports.orientation, orientationPermission])
+  }, [supports?.orientation, orientationPermission])
 
   const stopMedia = () => {
     setMediaActive(false)
@@ -334,7 +331,7 @@ export default function SensorsClient() {
   }
 
   const startCameraAndMic = async () => {
-    if (!supports.camera && !supports.microphone) return
+    if (!supports?.camera && !supports?.microphone) return
     if (!secureContext) {
       setMediaError('HTTPS erforderlich (Secure Context).')
       return
@@ -344,14 +341,14 @@ export default function SensorsClient() {
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: supports.camera,
-        audio: supports.microphone,
+        video: supports?.camera,
+        audio: supports?.microphone,
       })
 
       streamRef.current = stream
       setMediaActive(true)
 
-      if (videoRef.current && supports.camera) {
+      if (videoRef.current && supports?.camera) {
         videoRef.current.srcObject = stream
         await videoRef.current.play().catch(() => {})
       }
@@ -376,7 +373,7 @@ export default function SensorsClient() {
   }, [])
 
   const requestNotifications = async () => {
-    if (!supports.notifications) return
+    if (!supports?.notifications) return
     try {
       const res = await Notification.requestPermission()
       setNotifPermission(normalizeNotificationPermission(res))
@@ -386,7 +383,7 @@ export default function SensorsClient() {
   }
 
   const testNotification = async () => {
-    if (!supports.notifications) return
+    if (!supports?.notifications) return
     if (Notification.permission !== 'granted') return
 
     try {
@@ -399,7 +396,7 @@ export default function SensorsClient() {
   }
 
   const doShare = async () => {
-    if (!supports.share) return
+    if (!supports?.share) return
     try {
       await navigator.share({
         title: 'SmartDiary',
@@ -412,7 +409,7 @@ export default function SensorsClient() {
   }
 
   const writeClipboard = async () => {
-    if (!supports.clipboard) return
+    if (!supports?.clipboard) return
     try {
       await navigator.clipboard.writeText(`SmartDiary @ ${new Date().toISOString()}`)
     } catch {
@@ -421,12 +418,12 @@ export default function SensorsClient() {
   }
 
   const vibrate = () => {
-    if (!supports.vibration) return
+    if (!supports?.vibration) return
     navigator.vibrate(200)
   }
 
   const requestWakeLock = async () => {
-    if (!supports.wakeLock) return
+    if (!supports?.wakeLock) return
     try {
       const anyNav = navigator as any
       wakeLockRef.current = await anyNav.wakeLock.request('screen')
@@ -454,20 +451,32 @@ export default function SensorsClient() {
     // “Was nicht geht, soll ausgeblendet werden.”
     // => Only show features that are supported by feature detection.
     return {
-      geolocation: supports.geolocation,
-      motion: supports.motion,
-      orientation: supports.orientation,
-      media: supports.camera || supports.microphone,
-      battery: supports.battery,
-      connection: supports.connection,
-      storage: supports.storage,
-      notifications: supports.notifications,
-      share: supports.share,
-      clipboard: supports.clipboard,
-      vibration: supports.vibration,
-      wakeLock: supports.wakeLock,
+      geolocation: supports?.geolocation,
+      motion: supports?.motion,
+      orientation: supports?.orientation,
+      media: supports?.camera || supports?.microphone,
+      battery: supports?.battery,
+      connection: supports?.connection,
+      storage: supports?.storage,
+      notifications: supports?.notifications,
+      share: supports?.share,
+      clipboard: supports?.clipboard,
+      vibration: supports?.vibration,
+      wakeLock: supports?.wakeLock,
     }
   }, [supports])
+
+  // Show loading state until client-side detection is complete
+  if (!supports) {
+    return (
+      <div className="max-w-6xl mx-auto">
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+        <p className="text-center text-gray-600 dark:text-gray-300">Erkenne Gerätefunktionen...</p>
+      </div>
+    )
+  }
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
@@ -595,8 +604,8 @@ export default function SensorsClient() {
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
             <h2 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">📷 Kamera / 🎙️ Mikrofon</h2>
             <div className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-              {supports.camera && <div><span className="font-medium">Camera permission:</span> {cameraPermission}</div>}
-              {supports.microphone && <div><span className="font-medium">Mic permission:</span> {micPermission}</div>}
+              {supports?.camera && <div><span className="font-medium">Camera permission:</span> {cameraPermission}</div>}
+              {supports?.microphone && <div><span className="font-medium">Mic permission:</span> {micPermission}</div>}
               <div><span className="font-medium">Aktiv:</span> {boolLabel(mediaActive)}</div>
             </div>
 
@@ -606,7 +615,7 @@ export default function SensorsClient() {
               </div>
             )}
 
-            {supports.camera && (
+            {supports?.camera && (
               <div className="mb-4">
                 <video ref={videoRef} className="w-full rounded-lg bg-black" playsInline muted />
               </div>
