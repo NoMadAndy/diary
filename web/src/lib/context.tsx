@@ -114,8 +114,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
         
         // Check auth
         const savedUser = localStorage.getItem('user')
-        if (savedUser && api.isAuthenticated()) {
-          setUser(JSON.parse(savedUser))
+        if (savedUser && savedUser !== 'undefined' && api.isAuthenticated()) {
+          try {
+            setUser(JSON.parse(savedUser))
+          } catch (e) {
+            console.error('Failed to parse saved user:', e)
+            localStorage.removeItem('user')
+          }
         }
         
         // Load cached data

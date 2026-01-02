@@ -80,6 +80,7 @@ async def login(
         access_token=access_token,
         refresh_token=refresh_token,
         token_type="bearer",
+        user=user,
     )
 
 
