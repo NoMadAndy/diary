@@ -117,10 +117,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
           console.log('Using dynamic API URL:', apiUrl)
         }
         
-        // Ensure HTTPS if page is HTTPS
+        // ALWAYS ensure HTTPS if page is HTTPS (regardless of what was saved)
         if (typeof window !== 'undefined' && window.location.protocol === 'https:' && apiUrl.startsWith('http://')) {
           apiUrl = apiUrl.replace('http://', 'https://')
           console.log('Upgraded API URL to HTTPS:', apiUrl)
+          // Save corrected URL to prevent future issues
+          const correctedSettings = { ...savedSettings, apiBaseUrl: apiUrl }
+          await storage.setSetting('settings', correctedSettings)
         }
         
         const finalSettings = { ...savedSettings, apiBaseUrl: apiUrl }
@@ -191,12 +194,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // Settings
   const updateSettings = useCallback(async (newSettings: Partial<AppSettings>) => {
+    let updatedUrl = newSettings.apiBaseUrl
+    
+    // Ensure HTTPS if page is HTTPS
+    if (updatedUrl && typeof window !== 'undefined' && window.location.protocol === 'https:' && updatedUrl.startsWith('http://')) {
+      updatedUrl = updatedUrl.replace('http://', 'https://')
+      console.log('Auto-corrected API URL to HTTPS:', updatedUrl)
+      newSettings = { ...newSettings, apiBaseUrl: updatedUrl }
+    }
+    
     const updated = { ...settings, ...newSettings }
     setSettings(updated)
     await storage.setSetting('settings', updated)
     
-    if (newSettings.apiBaseUrl) {
-      api.setBaseUrl(newSettings.apiBaseUrl)
+    if (updatedUrl) {
+      api.setBaseUrl(updatedUrl)
     }
   }, [settings, storage, api])
 
