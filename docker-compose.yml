@@ -139,9 +139,11 @@ services:
       - POLL_INTERVAL=${POLL_INTERVAL:-60}
       - HEALTHCHECK_URL=${HEALTHCHECK_URL:-http://api:8000/health}
       - DEPLOY_LOCK_TIMEOUT=${DEPLOY_LOCK_TIMEOUT:-300}
+      - COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-diary}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - deployer-data:/deploy
+      - deployer-repo:/deploy/repo
+      - deployer-state:/deploy/state
     depends_on:
       - api
     networks:
@@ -160,4 +162,5 @@ networks:
 volumes:
   postgres-data:
   minio-data:
-  deployer-data:
+  deployer-repo:
+  deployer-state:

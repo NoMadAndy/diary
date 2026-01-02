@@ -7,18 +7,19 @@ RUN apk add --no-cache \
     curl \
     jq \
     python3 \
-    py3-pip
+    py3-pip \
+    docker-compose
 
 # Create working directory
 WORKDIR /deploy
 
-# Copy deploy script
-COPY deploy.sh /deploy/deploy.sh
-RUN chmod +x /deploy/deploy.sh
+# Copy bootstrap script (this one stays in the image)
+COPY bootstrap.sh /deploy/bootstrap.sh
+RUN chmod +x /deploy/bootstrap.sh
 
 # Health check
 HEALTHCHECK --interval=60s --timeout=10s --start-period=10s --retries=3 \
     CMD pgrep -f "deploy.sh" || exit 1
 
-# Run deploy script
-CMD ["/deploy/deploy.sh"]
+# Run bootstrap script
+CMD ["/deploy/bootstrap.sh"]

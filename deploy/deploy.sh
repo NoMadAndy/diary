@@ -12,8 +12,12 @@ POLL_INTERVAL="${POLL_INTERVAL:-60}"
 HEALTHCHECK_URL="${HEALTHCHECK_URL:-http://api:8000/health}"
 DEPLOY_LOCK_TIMEOUT="${DEPLOY_LOCK_TIMEOUT:-300}"
 REPO_DIR="/deploy/repo"
-LOCK_FILE="/deploy/.deploy.lock"
-LAST_SHA_FILE="/deploy/.last_sha"
+STATE_DIR="/deploy/state"
+LOCK_FILE="${STATE_DIR}/.deploy.lock"
+LAST_SHA_FILE="${STATE_DIR}/.last_sha"
+
+# Ensure state directory exists
+mkdir -p "$STATE_DIR"
 
 # Logging
 log() {
@@ -147,7 +151,16 @@ deploy() {
     # Build and restart only api and web (not deployer, db, minio)
     # Use --no-cache to ensure fresh build with new code
     # Use production compose file to avoid dev volume mounts
+    # Use project name 'diary' to match existing containers
+    export COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-diary}"
+    
+    log "Using COMPOSE_PROJECT_NAME: $COMPOSE_PROJECT_NAME"
+    log "Compose files: $REPO_DIR/docker-compose.yml, $REPO_DIR/docker-compose.prod.yml"
+    
+    # Build new images
     docker compose -f "$REPO_DIR/docker-compose.yml" -f "$REPO_DIR/docker-compose.prod.yml" build --no-cache api web
+    
+    # Stop old containers, remove them, start new ones
     docker compose -f "$REPO_DIR/docker-compose.yml" -f "$REPO_DIR/docker-compose.prod.yml" up -d --force-recreate --no-deps api web
     
     # Wait for health check
