@@ -1,0 +1,12 @@
+# SmartDiary - Production Compose Override
+# Entfernt Development-Volumes damit der Code aus dem Image verwendet wird
+
+services:
+  api:
+    # Keine Volume-Mounts für Code - verwendet Code aus dem Image
+    volumes:
+      - ./CHANGELOG.md:/app/CHANGELOG.md:ro
+
+  web:
+    # Web hat keine Development-Volumes
+    volumes: []

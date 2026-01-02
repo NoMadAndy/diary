@@ -8,6 +8,16 @@ Automated git-based deployment container for SmartDiary.
 - Automatic build and deploy on new commits
 - Health check verification
 - Deploy locking to prevent parallel deployments
+- Production mode ohne Development-Volumes
+
+## Wie es funktioniert
+
+1. Der Deployer pollt das Git-Repository auf neue Commits
+2. Bei einem neuen Commit wird der Code geholt
+3. `docker compose build --no-cache` baut neue Images
+4. `docker compose up -d --force-recreate` startet die Container neu
+5. Die `docker-compose.prod.yml` Override entfernt Development-Volumes,
+   damit der Code aus dem Image verwendet wird (nicht gemountet)
 
 ## Configuration
 

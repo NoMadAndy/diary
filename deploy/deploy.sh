@@ -146,8 +146,9 @@ deploy() {
     log "Rebuilding and restarting api and web services..."
     # Build and restart only api and web (not deployer, db, minio)
     # Use --no-cache to ensure fresh build with new code
-    docker compose -f "$REPO_DIR/docker-compose.yml" build --no-cache api web
-    docker compose -f "$REPO_DIR/docker-compose.yml" up -d --force-recreate --no-deps api web
+    # Use production compose file to avoid dev volume mounts
+    docker compose -f "$REPO_DIR/docker-compose.yml" -f "$REPO_DIR/docker-compose.prod.yml" build --no-cache api web
+    docker compose -f "$REPO_DIR/docker-compose.yml" -f "$REPO_DIR/docker-compose.prod.yml" up -d --force-recreate --no-deps api web
     
     # Wait for health check
     if check_health; then
