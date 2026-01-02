@@ -231,10 +231,21 @@ class APIService {
       headers.set('Authorization', `Bearer ${this.accessToken}`)
     }
 
-    const response = await fetch(url, {
-      ...options,
-      headers,
-    })
+    let response: Response
+    try {
+      response = await fetch(url, {
+        ...options,
+        headers,
+      })
+    } catch (err) {
+      // Network error (server not reachable, CORS, etc.)
+      console.error('Network error:', err)
+      throw new APIError(
+        'Server nicht erreichbar. Bitte prüfe deine Internetverbindung und die API-URL.',
+        0,
+        'NETWORK_ERROR'
+      )
+    }
 
     // Try to refresh token on 401
     if (response.status === 401 && this.refreshToken && !endpoint.includes('/auth/')) {

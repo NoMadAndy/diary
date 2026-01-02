@@ -36,10 +36,14 @@ export default function SettingsClient() {
     setIsSubmitting(true)
 
     try {
+      console.log('Starting login for:', email)
       await login(email, password)
+      console.log('Login successful')
+      setAuthSuccess('Erfolgreich angemeldet!')
       resetForm()
     } catch (err) {
-      setAuthError(err instanceof Error ? err.message : 'Login fehlgeschlagen')
+      console.error('Login error:', err)
+      setAuthError(err instanceof Error ? err.message : 'Login fehlgeschlagen. Bitte prüfe deine Zugangsdaten und die Server-Verbindung.')
     } finally {
       setIsSubmitting(false)
     }
@@ -525,6 +529,42 @@ export default function SettingsClient() {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
             </svg>
+          </a>
+        </div>
+      </div>
+
+      {/* Legacy Pages - kann später entfernt werden */}
+      <div className="bg-gray-100 dark:bg-gray-900 rounded-xl p-6 border border-dashed border-gray-300 dark:border-gray-700">
+        <h2 className="text-lg font-semibold text-gray-500 dark:text-gray-400 mb-4">
+          🗂️ Alte Seiten (Legacy)
+        </h2>
+        <p className="text-sm text-gray-500 dark:text-gray-500 mb-4">
+          Diese Seiten werden bald entfernt oder in die neue Navigation integriert.
+        </p>
+        <div className="grid grid-cols-2 gap-3">
+          <a
+            href="/entries"
+            className="px-4 py-3 bg-white dark:bg-gray-800 rounded-lg text-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:shadow transition"
+          >
+            📝 Entries
+          </a>
+          <a
+            href="/trips"
+            className="px-4 py-3 bg-white dark:bg-gray-800 rounded-lg text-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:shadow transition"
+          >
+            ✈️ Trips
+          </a>
+          <a
+            href="/sensors"
+            className="px-4 py-3 bg-white dark:bg-gray-800 rounded-lg text-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:shadow transition"
+          >
+            📡 Sensors
+          </a>
+          <a
+            href="/changelog"
+            className="px-4 py-3 bg-white dark:bg-gray-800 rounded-lg text-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:shadow transition"
+          >
+            📋 Changelog
           </a>
         </div>
       </div>
