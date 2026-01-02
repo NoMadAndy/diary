@@ -11,8 +11,8 @@ import type {
   LocationState,
   CreateEntryRequest,
   CreateTrackRequest,
-  DEFAULT_SETTINGS,
 } from './types'
+import { getDefaultApiUrl } from './types'
 
 // App Context Types
 interface AppContextType {
@@ -57,9 +57,9 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | null>(null)
 
-// Default settings
+// Default settings - apiBaseUrl wird dynamisch gesetzt
 const defaultSettings: AppSettings = {
-  apiBaseUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
+  apiBaseUrl: '', // Will be set dynamically in useEffect
   enableLocationTracking: true,
   enablePhotoAssignment: true,
   enableActivityDetection: false,
@@ -107,10 +107,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
         // Init storage
         await storage.init()
         
-        // Load settings
+        // Load settings and determine API URL
         const savedSettings = await storage.getSetting<AppSettings>('settings', defaultSettings)
-        setSettings(savedSettings)
-        api.setBaseUrl(savedSettings.apiBaseUrl)
+        
+        // Use saved URL if valid, otherwise get dynamic default
+        let apiUrl = savedSettings.apiBaseUrl
+        if (!apiUrl || apiUrl === '' || apiUrl.includes('localhost')) {
+          apiUrl = getDefaultApiUrl()
+          console.log('Using dynamic API URL:', apiUrl)
+        }
+        
+        // Ensure HTTPS if page is HTTPS
+        if (typeof window !== 'undefined' && window.location.protocol === 'https:' && apiUrl.startsWith('http://')) {
+          apiUrl = apiUrl.replace('http://', 'https://')
+          console.log('Upgraded API URL to HTTPS:', apiUrl)
+        }
+        
+        const finalSettings = { ...savedSettings, apiBaseUrl: apiUrl }
+        setSettings(finalSettings)
+        api.setBaseUrl(apiUrl)
         
         // Check auth
         const savedUser = localStorage.getItem('user')

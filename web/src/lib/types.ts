@@ -214,9 +214,32 @@ export function getMoodEmoji(mood?: string): string {
   return option?.emoji ?? '😐'
 }
 
+// Helper function to get default API URL based on current protocol
+export function getDefaultApiUrl(): string {
+  // Server-side or build-time: use env variable
+  if (typeof window === 'undefined') {
+    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+  }
+  
+  // Client-side: use same origin with /api prefix, or env variable
+  const envUrl = process.env.NEXT_PUBLIC_API_URL
+  
+  // If env URL is set and not localhost, use it but ensure correct protocol
+  if (envUrl && !envUrl.includes('localhost')) {
+    // If page is HTTPS, force API to HTTPS too
+    if (window.location.protocol === 'https:' && envUrl.startsWith('http://')) {
+      return envUrl.replace('http://', 'https://')
+    }
+    return envUrl
+  }
+  
+  // Default: same origin (works with reverse proxy setup)
+  return window.location.origin
+}
+
 // Default settings
 export const DEFAULT_SETTINGS: AppSettings = {
-  apiBaseUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
+  apiBaseUrl: '', // Will be set dynamically
   enableLocationTracking: true,
   enablePhotoAssignment: true,
   enableActivityDetection: false,
