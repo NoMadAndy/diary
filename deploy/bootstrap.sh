@@ -8,7 +8,8 @@ set -e
 GIT_REPO_URL="${GIT_REPO_URL:-}"
 GIT_BRANCH="${GIT_BRANCH:-main}"
 GIT_TOKEN="${GIT_TOKEN:-}"
-REPO_DIR="/deploy/repo"
+# Repo dir must be on host filesystem so docker build context works
+REPO_DIR="${HOST_REPO_PATH:-/opt/smartdiary}"
 
 log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] BOOTSTRAP: $1"
@@ -31,10 +32,10 @@ fi
 
 # Clone repository if not exists
 if [ ! -d "$REPO_DIR/.git" ]; then
-    log "Initial clone of repository..."
+    log "Initial clone of repository to $REPO_DIR..."
     git clone --branch "$GIT_BRANCH" --single-branch "$repo_url" "$REPO_DIR"
 else
-    log "Updating repository..."
+    log "Updating repository in $REPO_DIR..."
     cd "$REPO_DIR"
     git fetch origin "$GIT_BRANCH" --force
     git reset --hard "origin/$GIT_BRANCH"
@@ -45,6 +46,7 @@ fi
 chmod +x "$REPO_DIR/deploy/deploy.sh"
 
 log "Starting deploy.sh from repository..."
+log "Repo directory: $REPO_DIR"
 log "Deploy script version: $(cd $REPO_DIR && git log -1 --format='%h %s' -- deploy/deploy.sh)"
 
 # Execute deploy script from repo (exec replaces this process)

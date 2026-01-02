@@ -35,7 +35,7 @@ class APIService {
   private refreshToken: string | null = null
 
   constructor(baseUrl: string = 'http://localhost:8000') {
-    this.baseUrl = baseUrl
+    this.baseUrl = this.ensureCorrectProtocol(baseUrl)
     // Load tokens from localStorage on init
     if (typeof window !== 'undefined') {
       this.accessToken = localStorage.getItem('accessToken')
@@ -43,9 +43,22 @@ class APIService {
     }
   }
 
+  // Ensure URL uses correct protocol (HTTPS if page is HTTPS)
+  private ensureCorrectProtocol(url: string): string {
+    if (typeof window === 'undefined') return url
+    
+    // If page is loaded over HTTPS, force API URL to HTTPS
+    if (window.location.protocol === 'https:' && url.startsWith('http://')) {
+      const upgraded = url.replace('http://', 'https://')
+      console.log('API URL upgraded to HTTPS:', upgraded)
+      return upgraded
+    }
+    return url
+  }
+
   // Update base URL
   setBaseUrl(url: string) {
-    this.baseUrl = url
+    this.baseUrl = this.ensureCorrectProtocol(url)
   }
 
   // Check if authenticated

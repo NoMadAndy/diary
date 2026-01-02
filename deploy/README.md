@@ -19,6 +19,20 @@ Automated git-based deployment container for SmartDiary.
 5. Die `docker-compose.prod.yml` Override entfernt Development-Volumes,
    damit der Code aus dem Image verwendet wird (nicht gemountet)
 
+## WICHTIG: Host-Pfad Konfiguration
+
+Da der Docker-Daemon auf dem Host läuft, muss das Repository auf einem
+Host-Pfad liegen, den sowohl der Deployer-Container als auch der Docker-
+Daemon erreichen können.
+
+Setze `HOST_REPO_PATH` in deiner `.env` Datei:
+```
+HOST_REPO_PATH=/opt/smartdiary
+```
+
+Dieser Pfad wird sowohl im Container gemountet als auch für den
+Docker Build-Context verwendet.
+
 ## Configuration
 
 All configuration is done via environment variables:
@@ -29,3 +43,5 @@ All configuration is done via environment variables:
 - `POLL_INTERVAL` - Seconds between polls (default: 60)
 - `HEALTHCHECK_URL` - URL to verify service health
 - `DEPLOY_LOCK_TIMEOUT` - Max seconds for a deploy (default: 300)
+- `HOST_REPO_PATH` - Host path for repo (default: /opt/smartdiary)
+- `COMPOSE_PROJECT_NAME` - Docker compose project name (default: diary)

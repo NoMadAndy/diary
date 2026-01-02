@@ -140,10 +140,14 @@ services:
       - HEALTHCHECK_URL=${HEALTHCHECK_URL:-http://api:8000/health}
       - DEPLOY_LOCK_TIMEOUT=${DEPLOY_LOCK_TIMEOUT:-300}
       - COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-diary}
+      # Host path where repo is cloned - must match container path for docker build context
+      - HOST_REPO_PATH=${HOST_REPO_PATH:-/opt/smartdiary}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - deployer-repo:/deploy/repo
+      # Mount repo to same path on host and container so docker build context works
+      - ${HOST_REPO_PATH:-/opt/smartdiary}:/opt/smartdiary
       - deployer-state:/deploy/state
+    working_dir: /opt/smartdiary
     depends_on:
       - api
     networks:
@@ -162,5 +166,4 @@ networks:
 volumes:
   postgres-data:
   minio-data:
-  deployer-repo:
   deployer-state:
