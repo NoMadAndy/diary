@@ -233,7 +233,16 @@ class APIService {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
-    const url = `${this.baseUrl}${endpoint}`
+    // ALWAYS ensure HTTPS in request if page is HTTPS (final safety net)
+    let baseUrl = this.baseUrl
+    if (typeof window !== 'undefined' && window.location.protocol === 'https:' && baseUrl.startsWith('http://')) {
+      baseUrl = baseUrl.replace('http://', 'https://')
+      // Also update the instance's baseUrl
+      this.baseUrl = baseUrl
+      console.log('Request: Auto-corrected API URL to HTTPS:', baseUrl)
+    }
+    
+    const url = `${baseUrl}${endpoint}`
     const headers = new Headers(options.headers)
 
     if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {
