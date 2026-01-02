@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { getDefaultApiUrl } from '@/lib/types'
 
 interface POI {
   name: string
@@ -46,7 +47,7 @@ export default function TripsPage() {
     setSuggestion(null)
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      const apiUrl = getDefaultApiUrl()
       
       const payload = {
         start_location: formData.start.trim(),

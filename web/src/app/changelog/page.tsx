@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
+import { getDefaultApiUrl } from '@/lib/types'
 
 interface ChangelogVersion {
   version: string
@@ -26,7 +27,7 @@ export default function ChangelogPage() {
   useEffect(() => {
     const fetchChangelog = async () => {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+        const apiUrl = getDefaultApiUrl()
         const response = await fetch(`${apiUrl}/api/v1/meta/changelog`)
         if (!response.ok) {
           throw new Error('Failed to fetch changelog')
