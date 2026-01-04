@@ -19,13 +19,15 @@ class AppState: ObservableObject {
     let apiService: APIService
     let locationService: LocationService
     let syncService: SyncService
+    let photoService: PhotoService
     
     // MARK: - Initialization
     
     init() {
         self.apiService = APIService()
         self.locationService = LocationService()
-        self.syncService = SyncService()
+        self.syncService = SyncService(apiService: self.apiService)
+        self.photoService = PhotoService()
         
         loadSettings()
     }
