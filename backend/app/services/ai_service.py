@@ -46,9 +46,9 @@ class AIService:
             print(f"OpenAI API error: {e}")
             return None
     
-    async def generate_day_summary(self, entries: List) -> DaySummaryResponse:
+    async def generate_day_summary(self, entries: List, tracks: List = None) -> DaySummaryResponse:
         """Generate a summary for a day's entries."""
-        if not entries:
+        if not entries and not tracks:
             return DaySummaryResponse(
                 date=datetime.utcnow().strftime("%Y-%m-%d"),
                 summary="Keine Einträge für diesen Tag.",
@@ -72,7 +72,23 @@ class AIService:
                 text += f" #{' #'.join(entry.tags)}"
             entries_text.append(text)
         
-        entries_combined = "\n".join(entries_text)
+        # Add track information
+        track_info = ""
+        total_distance = 0
+        total_elevation = 0
+        if tracks:
+            for track in tracks:
+                if track.distance_meters:
+                    total_distance += track.distance_meters
+                if track.elevation_gain:
+                    total_elevation += track.elevation_gain
+            
+            if total_distance > 0:
+                track_info = f"\n\nAufgezeichnete Tracks:\n- Gesamtstrecke: {total_distance/1000:.2f} km"
+            if total_elevation > 0:
+                track_info += f"\n- Höhenmeter: {total_elevation:.0f} m"
+        
+        entries_combined = "\n".join(entries_text) + track_info
         date_str = entries[0].entry_date.strftime("%Y-%m-%d") if entries else datetime.utcnow().strftime("%Y-%m-%d")
         
         # Generate summary with AI
@@ -107,7 +123,7 @@ Antworte im JSON-Format:
                     date=date_str,
                     summary=data.get("summary", ""),
                     highlights=data.get("highlights", []),
-                    statistics={"entries": len(entries)},
+                    statistics={"entries": len(entries), "tracks": len(tracks) if tracks else 0},
                     suggested_title=data.get("suggested_title"),
                     suggested_tags=data.get("suggested_tags"),
                 )
@@ -119,7 +135,7 @@ Antworte im JSON-Format:
             date=date_str,
             summary=f"Ein Tag mit {len(entries)} Einträgen.",
             highlights=[entry.title or "Eintrag" for entry in entries[:3]],
-            statistics={"entries": len(entries)},
+            statistics={"entries": len(entries), "tracks": len(tracks) if tracks else 0},
         )
     
     async def suggest_tags(
@@ -287,6 +303,232 @@ Antworte im JSON-Format:
             poi_name=None,
             text="Keine POI-Informationen verfügbar.",
             has_more=False,
+        )
+    
+    async def generate_multi_day_summary(
+        self,
+        entries: List,
+        tracks: List,
+        start_date: datetime,
+        end_date: datetime,
+    ):
+        """Generate a summary for multiple days."""
+        from app.schemas.ai import (
+            MultiDaySummaryResponse,
+            MultiDayStatistics,
+            TrackSummary,
+            DaySummaryResponse,
+        )
+        
+        if not entries and not tracks:
+            return MultiDaySummaryResponse(
+                start_date=start_date.strftime("%Y-%m-%d"),
+                end_date=end_date.strftime("%Y-%m-%d"),
+                summary="Keine Einträge für diesen Zeitraum.",
+                daily_summaries=[],
+                total_statistics=MultiDayStatistics(
+                    total_entries=0,
+                    total_distance=None,
+                    total_elevation_gain=None,
+                    total_duration=None,
+                    days_count=0,
+                ),
+                highlights=[],
+            )
+        
+        # Calculate statistics from tracks
+        total_distance = sum(t.distance_meters or 0 for t in tracks) if tracks else 0
+        total_elevation = sum(t.elevation_gain or 0 for t in tracks) if tracks else 0
+        total_duration = sum(t.duration_seconds or 0 for t in tracks) if tracks else 0
+        
+        # Group entries by day
+        from collections import defaultdict
+        entries_by_day = defaultdict(list)
+        for entry in entries:
+            day_key = entry.entry_date.strftime("%Y-%m-%d")
+            entries_by_day[day_key].append(entry)
+        
+        # Generate daily summaries
+        daily_summaries = []
+        for day_key in sorted(entries_by_day.keys()):
+            day_entries = entries_by_day[day_key]
+            day_tracks = [t for t in tracks if t.started_at and t.started_at.strftime("%Y-%m-%d") == day_key]
+            day_summary = await self.generate_day_summary(day_entries, day_tracks)
+            daily_summaries.append(day_summary)
+        
+        # Prepare context for overall summary
+        context = f"""Zeitraum: {start_date.strftime("%Y-%m-%d")} bis {end_date.strftime("%Y-%m-%d")}
+Anzahl Einträge: {len(entries)}
+Anzahl Tracks: {len(tracks)}
+Gesamtstrecke: {total_distance/1000:.2f} km
+Gesamthöhenmeter: {total_elevation:.0f} m
+
+Tägliche Zusammenfassungen:
+"""
+        for ds in daily_summaries[:5]:  # Limit to first 5 days
+            context += f"\n{ds.date}: {ds.summary}"
+        
+        prompt = f"""Erstelle eine umfassende Zusammenfassung für diesen Zeitraum:
+
+{context}
+
+Antworte im JSON-Format:
+{{
+    "summary": "Eine ausführliche Zusammenfassung des gesamten Zeitraums (4-5 Sätze)",
+    "highlights": ["Highlight 1", "Highlight 2", "Highlight 3", "Highlight 4", "Highlight 5"]
+}}"""
+        
+        response = await self._chat_completion([
+            {"role": "system", "content": "Du bist ein freundlicher Assistent, der Tagebucheinträge zusammenfasst. Antworte immer auf Deutsch und im angegebenen JSON-Format."},
+            {"role": "user", "content": prompt}
+        ], max_tokens=1000)
+        
+        overall_summary = f"Zeitraum mit {len(entries)} Einträgen und {len(tracks)} Tracks."
+        highlights = []
+        
+        if response:
+            try:
+                if "```json" in response:
+                    response = response.split("```json")[1].split("```")[0]
+                elif "```" in response:
+                    response = response.split("```")[1].split("```")[0]
+                
+                data = json.loads(response.strip())
+                overall_summary = data.get("summary", overall_summary)
+                highlights = data.get("highlights", [])
+            except json.JSONDecodeError:
+                pass
+        
+        # Create track summaries
+        track_summaries = [
+            TrackSummary(
+                id=t.id,
+                name=t.name,
+                date=t.started_at.strftime("%Y-%m-%d") if t.started_at else "",
+                distance_meters=t.distance_meters,
+                elevation_gain=t.elevation_gain,
+            )
+            for t in tracks[:10]  # Limit to 10 tracks
+        ]
+        
+        return MultiDaySummaryResponse(
+            start_date=start_date.strftime("%Y-%m-%d"),
+            end_date=end_date.strftime("%Y-%m-%d"),
+            summary=overall_summary,
+            daily_summaries=daily_summaries,
+            total_statistics=MultiDayStatistics(
+                total_entries=len(entries),
+                total_distance=total_distance if total_distance > 0 else None,
+                total_elevation_gain=total_elevation if total_elevation > 0 else None,
+                total_duration=total_duration if total_duration > 0 else None,
+                days_count=len(daily_summaries),
+            ),
+            highlights=highlights,
+            tracks=track_summaries if track_summaries else None,
+        )
+    
+    async def suggest_activities(
+        self,
+        latitude: float,
+        longitude: float,
+        interests: Optional[List[str]] = None,
+    ):
+        """Suggest activities at a destination with detailed research."""
+        from app.schemas.ai import (
+            ActivitySuggestionsResponse,
+            ActivitySuggestion,
+            GuidedTour,
+            TourStop,
+        )
+        
+        interests_str = ", ".join(interests) if interests else "Allgemein"
+        
+        prompt = f"""Du bist ein erfahrener Reiseführer. Recherchiere gründlich und erstelle detaillierte Vorschläge für Aktivitäten in der Nähe von:
+Latitude: {latitude}, Longitude: {longitude}
+Interessen: {interests_str}
+
+Erstelle mindestens 3 konkrete Aktivitätsvorschläge und einen geführten Rundgang.
+
+Antworte im JSON-Format:
+{{
+    "location": "Name des Ortes",
+    "activities": [
+        {{
+            "name": "Name der Aktivität",
+            "description": "Ausführliche Beschreibung (2-3 Sätze)",
+            "category": "Kategorie (z.B. Kultur, Natur, Sport, Essen)",
+            "estimated_duration": 120,
+            "recommendation_reason": "Warum diese Aktivität empfohlen wird"
+        }}
+    ],
+    "guided_tour": {{
+        "name": "Name der geführten Tour",
+        "description": "Beschreibung der Tour (2-3 Sätze)",
+        "duration": 180,
+        "stops": [
+            {{
+                "name": "Stopp 1",
+                "description": "Beschreibung",
+                "latitude": 48.1351,
+                "longitude": 11.5820,
+                "order": 1
+            }}
+        ]
+    }}
+}}
+
+Erstelle bitte mindestens 3 verschiedene Aktivitäten und mindestens 3 Stopps für die Tour."""
+
+        response = await self._chat_completion([
+            {"role": "system", "content": "Du bist ein erfahrener Reiseführer mit umfangreichem Wissen über Sehenswürdigkeiten und Aktivitäten weltweit. Erstelle detaillierte, praktische Vorschläge mit echten Orten und Sehenswürdigkeiten. Antworte auf Deutsch im angegebenen JSON-Format."},
+            {"role": "user", "content": prompt}
+        ], max_tokens=2000)
+        
+        if response:
+            try:
+                if "```json" in response:
+                    response = response.split("```json")[1].split("```")[0]
+                elif "```" in response:
+                    response = response.split("```")[1].split("```")[0]
+                
+                data = json.loads(response.strip())
+                
+                activities = [
+                    ActivitySuggestion(**act) for act in data.get("activities", [])
+                ]
+                
+                guided_tour = None
+                if "guided_tour" in data and data["guided_tour"]:
+                    tour_data = data["guided_tour"]
+                    stops = [TourStop(**stop) for stop in tour_data.get("stops", [])]
+                    guided_tour = GuidedTour(
+                        name=tour_data.get("name", ""),
+                        description=tour_data.get("description", ""),
+                        duration=tour_data.get("duration", 0),
+                        stops=stops,
+                    )
+                
+                return ActivitySuggestionsResponse(
+                    location=data.get("location", "Unbekannter Ort"),
+                    activities=activities,
+                    guided_tour=guided_tour,
+                )
+            except (json.JSONDecodeError, TypeError) as e:
+                print(f"Error parsing activity suggestions: {e}")
+        
+        # Fallback
+        return ActivitySuggestionsResponse(
+            location="Standort",
+            activities=[
+                ActivitySuggestion(
+                    name="Umgebung erkunden",
+                    description="Erkunde die Umgebung zu Fuß und entdecke lokale Sehenswürdigkeiten.",
+                    category="Allgemein",
+                    estimated_duration=60,
+                    recommendation_reason="Gute Möglichkeit, die Gegend kennenzulernen.",
+                )
+            ],
+            guided_tour=None,
         )
 
 

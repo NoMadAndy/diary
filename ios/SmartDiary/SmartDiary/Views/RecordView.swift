@@ -1,4 +1,5 @@
 import SwiftUI
+import CoreLocation
 
 /// View for recording new entries
 struct RecordView: View {
@@ -11,6 +12,9 @@ struct RecordView: View {
     @State private var selectedImage: UIImage?
     @State private var isSaving = false
     @State private var showingSaveSuccess = false
+    @State private var savedTrackLocations: [CLLocation] = []
+    @State private var errorMessage: String?
+    @State private var showingError = false
     
     let moods = ["😊 Glücklich", "😢 Traurig", "🤩 Aufgeregt", "😌 Ruhig", "😴 Müde", "😐 Neutral"]
     
@@ -156,12 +160,17 @@ struct RecordView: View {
             } message: {
                 Text("Dein Moment wurde erfolgreich gespeichert.")
             }
+            .alert("Fehler", isPresented: $showingError) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(errorMessage ?? "Ein Fehler ist aufgetreten.")
+            }
         }
     }
     
     private func toggleTracking() {
         if isTracking {
-            let _ = appState.locationService.stopTracking()
+            savedTrackLocations = appState.locationService.stopTracking()
             isTracking = false
         } else {
             appState.locationService.startTracking()
@@ -186,11 +195,26 @@ struct RecordView: View {
         
         appState.syncService.addPendingEntry(entry)
         
+        // Save track if we recorded one
+        if !savedTrackLocations.isEmpty {
+            let trackName = content.isEmpty ? "Track \(Date().formatted())" : content
+            appState.syncService.addPendingTrackFromLocations(
+                savedTrackLocations,
+                name: trackName,
+                description: "Aufgezeichnet während Eintrag"
+            )
+        }
+        
         Task {
             await appState.syncService.sync()
             await MainActor.run {
                 isSaving = false
-                showingSaveSuccess = true
+                if let error = appState.syncService.lastError {
+                    errorMessage = error
+                    showingError = true
+                } else {
+                    showingSaveSuccess = true
+                }
             }
         }
     }
@@ -200,6 +224,7 @@ struct RecordView: View {
         selectedMood = nil
         tags = ""
         selectedImage = nil
+        savedTrackLocations = []
     }
 }
 

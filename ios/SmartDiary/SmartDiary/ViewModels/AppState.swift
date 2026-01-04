@@ -25,7 +25,7 @@ class AppState: ObservableObject {
     init() {
         self.apiService = APIService()
         self.locationService = LocationService()
-        self.syncService = SyncService()
+        self.syncService = SyncService(apiService: self.apiService)
         
         loadSettings()
     }

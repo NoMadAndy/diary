@@ -78,11 +78,50 @@ class APIService: ObservableObject {
         return try await get("/api/v1/meta/changelog")
     }
     
+    // MARK: - Tracks
+    
+    func createTrack(_ track: CreateTrackRequest) async throws -> Track {
+        return try await post("/api/v1/tracks", body: track)
+    }
+    
+    func getTracks(page: Int = 1, pageSize: Int = 20) async throws -> PaginatedResponse<Track> {
+        return try await get("/api/v1/tracks?page=\(page)&page_size=\(pageSize)")
+    }
+    
+    func getTrack(id: Int) async throws -> Track {
+        return try await get("/api/v1/tracks/\(id)")
+    }
+    
+    func getTrackStats(id: Int) async throws -> TrackStats {
+        return try await get("/api/v1/tracks/\(id)/stats")
+    }
+    
     // MARK: - AI
     
     func getGuidePOI(latitude: Double, longitude: Double, mode: String) async throws -> GuidePOIResponse {
         let body = ["latitude": latitude, "longitude": longitude, "mode": mode] as [String : Any]
         return try await post("/api/v1/ai/guide/next", body: body)
+    }
+    
+    func summarizeDay(date: Date) async throws -> DaySummaryResponse {
+        let body = ["date": ISO8601DateFormatter().string(from: date)]
+        return try await post("/api/v1/ai/summarize_day", body: body)
+    }
+    
+    func summarizeMultipleDays(startDate: Date, endDate: Date) async throws -> MultiDaySummaryResponse {
+        let body = [
+            "start_date": ISO8601DateFormatter().string(from: startDate),
+            "end_date": ISO8601DateFormatter().string(from: endDate)
+        ]
+        return try await post("/api/v1/ai/summarize_period", body: body)
+    }
+    
+    func suggestActivities(latitude: Double, longitude: Double, interests: [String]? = nil) async throws -> ActivitySuggestionsResponse {
+        var body: [String: Any] = ["latitude": latitude, "longitude": longitude]
+        if let interests = interests {
+            body["interests"] = interests
+        }
+        return try await post("/api/v1/ai/suggest_activities", body: body)
     }
     
     // MARK: - Private Methods
@@ -272,6 +311,51 @@ struct UpdateEntryRequest: Codable {
     }
 }
 
+struct CreateTrackRequest: Codable {
+    struct TrackPoint: Codable {
+        let latitude: Double
+        let longitude: Double
+        let elevation: Double?
+        let timestamp: String?
+    }
+    
+    let name: String?
+    let description: String?
+    let entryId: Int?
+    let trackData: [TrackPoint]
+    let startedAt: String?
+    let endedAt: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case name
+        case description
+        case entryId = "entry_id"
+        case trackData = "track_data"
+        case startedAt = "started_at"
+        case endedAt = "ended_at"
+    }
+}
+
+struct TrackStats: Codable {
+    let distanceMeters: Double?
+    let durationSeconds: Int?
+    let elevationGain: Double?
+    let elevationLoss: Double?
+    let maxElevation: Double?
+    let minElevation: Double?
+    let avgSpeed: Double?
+    
+    enum CodingKeys: String, CodingKey {
+        case distanceMeters = "distance_meters"
+        case durationSeconds = "duration_seconds"
+        case elevationGain = "elevation_gain"
+        case elevationLoss = "elevation_loss"
+        case maxElevation = "max_elevation"
+        case minElevation = "min_elevation"
+        case avgSpeed = "avg_speed"
+    }
+}
+
 struct GuidePOIResponse: Codable {
     let poiName: String?
     let text: String
@@ -284,6 +368,113 @@ struct GuidePOIResponse: Codable {
         case hasMore = "has_more"
         case distanceMeters = "distance_meters"
     }
+}
+
+struct DaySummaryResponse: Codable {
+    let date: String
+    let summary: String
+    let highlights: [String]
+    let statistics: [String: Int]
+    let suggestedTitle: String?
+    let suggestedTags: [String]?
+    
+    enum CodingKeys: String, CodingKey {
+        case date
+        case summary
+        case highlights
+        case statistics
+        case suggestedTitle = "suggested_title"
+        case suggestedTags = "suggested_tags"
+    }
+}
+
+struct MultiDaySummaryResponse: Codable {
+    let startDate: String
+    let endDate: String
+    let summary: String
+    let dailySummaries: [DaySummaryResponse]
+    let totalStatistics: MultiDayStatistics
+    let highlights: [String]
+    let photos: [String]?
+    let tracks: [TrackSummary]?
+    
+    enum CodingKeys: String, CodingKey {
+        case startDate = "start_date"
+        case endDate = "end_date"
+        case summary
+        case dailySummaries = "daily_summaries"
+        case totalStatistics = "total_statistics"
+        case highlights
+        case photos
+        case tracks
+    }
+}
+
+struct MultiDayStatistics: Codable {
+    let totalEntries: Int
+    let totalDistance: Double?
+    let totalElevationGain: Double?
+    let totalDuration: Int?
+    let daysCount: Int
+    
+    enum CodingKeys: String, CodingKey {
+        case totalEntries = "total_entries"
+        case totalDistance = "total_distance"
+        case totalElevationGain = "total_elevation_gain"
+        case totalDuration = "total_duration"
+        case daysCount = "days_count"
+    }
+}
+
+struct TrackSummary: Codable {
+    let id: Int
+    let name: String?
+    let date: String
+    let distanceMeters: Double?
+    let elevationGain: Double?
+}
+
+struct ActivitySuggestionsResponse: Codable {
+    let location: String
+    let activities: [ActivitySuggestion]
+    let guidedTour: GuidedTour?
+    
+    enum CodingKeys: String, CodingKey {
+        case location
+        case activities
+        case guidedTour = "guided_tour"
+    }
+}
+
+struct ActivitySuggestion: Codable {
+    let name: String
+    let description: String
+    let category: String
+    let estimatedDuration: Int?
+    let recommendationReason: String
+    
+    enum CodingKeys: String, CodingKey {
+        case name
+        case description
+        case category
+        case estimatedDuration = "estimated_duration"
+        case recommendationReason = "recommendation_reason"
+    }
+}
+
+struct GuidedTour: Codable {
+    let name: String
+    let description: String
+    let duration: Int
+    let stops: [TourStop]
+}
+
+struct TourStop: Codable {
+    let name: String
+    let description: String
+    let latitude: Double
+    let longitude: Double
+    let order: Int
 }
 
 enum APIError: Error, LocalizedError {

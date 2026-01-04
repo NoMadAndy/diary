@@ -9,15 +9,20 @@ from sqlalchemy import select
 from app.db.session import get_db
 from app.db.models.user import User
 from app.db.models.entry import Entry
+from app.db.models.track import Track
 from app.schemas.ai import (
     DaySummaryRequest,
     DaySummaryResponse,
+    MultiDaySummaryRequest,
+    MultiDaySummaryResponse,
     TagSuggestionRequest,
     TagSuggestionResponse,
     TripSuggestionRequest,
     TripSuggestionResponse,
     GuidePOIRequest,
     GuidePOIResponse,
+    ActivitySuggestionsRequest,
+    ActivitySuggestionsResponse,
 )
 from app.api.deps import get_current_user
 from app.services.ai_service import ai_service
@@ -44,7 +49,18 @@ async def summarize_day(
     )
     entries = result.scalars().all()
     
-    if not entries:
+    # Get tracks for the day if requested
+    tracks = []
+    if request.include_tracks:
+        result = await db.execute(
+            select(Track)
+            .where(Track.user_id == current_user.id)
+            .where(Track.started_at >= start_of_day)
+            .where(Track.started_at <= end_of_day)
+        )
+        tracks = result.scalars().all()
+    
+    if not entries and not tracks:
         return DaySummaryResponse(
             date=request.date.strftime("%Y-%m-%d"),
             summary="Keine Einträge für diesen Tag.",
@@ -53,7 +69,47 @@ async def summarize_day(
         )
     
     # Generate summary using AI service
-    summary = await ai_service.generate_day_summary(entries)
+    summary = await ai_service.generate_day_summary(entries, tracks)
+    
+    return summary
+
+
+@router.post("/summarize_period", response_model=MultiDaySummaryResponse)
+async def summarize_period(
+    request: MultiDaySummaryRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Generate a summary for multiple days."""
+    # Get entries for the period
+    result = await db.execute(
+        select(Entry)
+        .where(Entry.user_id == current_user.id)
+        .where(Entry.entry_date >= request.start_date)
+        .where(Entry.entry_date <= request.end_date)
+        .order_by(Entry.entry_date)
+    )
+    entries = result.scalars().all()
+    
+    # Get tracks for the period if requested
+    tracks = []
+    if request.include_tracks:
+        result = await db.execute(
+            select(Track)
+            .where(Track.user_id == current_user.id)
+            .where(Track.started_at >= request.start_date)
+            .where(Track.started_at <= request.end_date)
+            .order_by(Track.started_at)
+        )
+        tracks = result.scalars().all()
+    
+    # Generate multi-day summary using AI service
+    summary = await ai_service.generate_multi_day_summary(
+        entries,
+        tracks,
+        request.start_date,
+        request.end_date,
+    )
     
     return summary
 
@@ -132,3 +188,18 @@ async def get_next_guide_poi(
     )
     
     return poi_info
+
+
+@router.post("/suggest_activities", response_model=ActivitySuggestionsResponse)
+async def suggest_activities(
+    request: ActivitySuggestionsRequest,
+    current_user: User = Depends(get_current_user),
+):
+    """Suggest activities at a destination with detailed research and guided tour."""
+    suggestions = await ai_service.suggest_activities(
+        latitude=request.latitude,
+        longitude=request.longitude,
+        interests=request.interests,
+    )
+    
+    return suggestions
