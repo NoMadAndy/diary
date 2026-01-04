@@ -12,8 +12,18 @@ class SyncService: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var apiService: APIService
     
-    private var pendingEntries: [CreateEntryRequest] = []
-    private var pendingTracks: [CreateTrackRequest] = []
+    private var pendingEntries: [PendingEntry] = []
+    private var pendingTracks: [PendingTrack] = []
+    
+    struct PendingEntry: Identifiable {
+        let id = UUID()
+        let request: CreateEntryRequest
+    }
+    
+    struct PendingTrack: Identifiable {
+        let id = UUID()
+        let request: CreateTrackRequest
+    }
     
     init(apiService: APIService) {
         self.apiService = apiService
@@ -29,11 +39,11 @@ class SyncService: ObservableObject {
         
         do {
             // 1. Upload pending entries
-            for entry in pendingEntries {
+            for pendingEntry in pendingEntries {
                 do {
-                    let _ = try await apiService.createEntry(entry)
+                    let _ = try await apiService.createEntry(pendingEntry.request)
                     await MainActor.run {
-                        pendingEntries.removeAll { $0.content == entry.content }
+                        pendingEntries.removeAll { $0.id == pendingEntry.id }
                         updatePendingCount()
                     }
                 } catch {
@@ -45,11 +55,11 @@ class SyncService: ObservableObject {
             }
             
             // 2. Upload pending tracks
-            for track in pendingTracks {
+            for pendingTrack in pendingTracks {
                 do {
-                    let _ = try await apiService.createTrack(track)
+                    let _ = try await apiService.createTrack(pendingTrack.request)
                     await MainActor.run {
-                        pendingTracks.removeAll { $0.name == track.name }
+                        pendingTracks.removeAll { $0.id == pendingTrack.id }
                         updatePendingCount()
                     }
                 } catch {
@@ -68,12 +78,12 @@ class SyncService: ObservableObject {
     }
     
     func addPendingEntry(_ entry: CreateEntryRequest) {
-        pendingEntries.append(entry)
+        pendingEntries.append(PendingEntry(request: entry))
         updatePendingCount()
     }
     
     func addPendingTrack(_ track: CreateTrackRequest) {
-        pendingTracks.append(track)
+        pendingTracks.append(PendingTrack(request: track))
         updatePendingCount()
     }
     

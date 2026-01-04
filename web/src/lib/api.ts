@@ -16,7 +16,12 @@ import type {
   ChangelogResponse,
   GuidePOIResponse,
   AISummaryResponse,
+  MultiDaySummaryResponse,
+  ActivitySuggestionsResponse,
 } from './types'
+
+// Create type alias for backward compatibility
+export type DaySummaryResponse = AISummaryResponse
 
 class APIError extends Error {
   constructor(

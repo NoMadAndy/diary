@@ -294,11 +294,26 @@ function GuidedTourCard({ tour }: { tour: ActivitySuggestionsResponse['guided_to
       <button
         onClick={() => {
           // Build Google Maps URL with all stops
-          const stops = tour.stops
-            .sort((a, b) => a.order - b.order)
-            .map((stop) => `${stop.latitude},${stop.longitude}`)
-            .join('/')
-          const url = `https://www.google.com/maps/dir/${stops}`
+          const sortedStops = tour.stops.sort((a, b) => a.order - b.order)
+          if (sortedStops.length === 0) return
+          
+          // Origin is the first stop
+          const origin = `${sortedStops[0].latitude},${sortedStops[0].longitude}`
+          
+          // Destination is the last stop
+          const destination = sortedStops.length > 1
+            ? `${sortedStops[sortedStops.length - 1].latitude},${sortedStops[sortedStops.length - 1].longitude}`
+            : origin
+          
+          // Waypoints are all the stops in between (if any)
+          const waypoints = sortedStops.length > 2
+            ? sortedStops.slice(1, -1).map(stop => `${stop.latitude},${stop.longitude}`).join('|')
+            : ''
+          
+          const url = waypoints
+            ? `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&waypoints=${waypoints}`
+            : `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}`
+          
           window.open(url, '_blank')
         }}
         className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 flex items-center justify-center"

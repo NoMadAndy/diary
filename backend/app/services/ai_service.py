@@ -404,7 +404,7 @@ Antworte im JSON-Format:
             TrackSummary(
                 id=t.id,
                 name=t.name,
-                date=t.started_at.strftime("%Y-%m-%d") if t.started_at else "",
+                date=t.started_at.strftime("%Y-%m-%d") if t.started_at else "Unknown",
                 distance_meters=t.distance_meters,
                 elevation_gain=t.elevation_gain,
             )
