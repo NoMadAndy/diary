@@ -154,8 +154,68 @@ export interface GuidePOIResponse {
 
 // AI Summary response
 export interface AISummaryResponse {
+  date: string
   summary: string
+  highlights: string[]
+  statistics: Record<string, number>
+  suggested_title?: string
   suggested_tags?: string[]
+}
+
+// Multi-day summary response
+export interface MultiDaySummaryResponse {
+  start_date: string
+  end_date: string
+  summary: string
+  daily_summaries: AISummaryResponse[]
+  total_statistics: {
+    total_entries: number
+    total_distance?: number
+    total_elevation_gain?: number
+    total_duration?: number
+    days_count: number
+  }
+  highlights: string[]
+  photos?: string[]
+  tracks?: TrackSummary[]
+}
+
+export interface TrackSummary {
+  id: number
+  name?: string
+  date: string
+  distance_meters?: number
+  elevation_gain?: number
+}
+
+// Activity suggestions
+export interface ActivitySuggestion {
+  name: string
+  description: string
+  category: string
+  estimated_duration?: number
+  recommendation_reason: string
+}
+
+export interface TourStop {
+  name: string
+  description: string
+  latitude: number
+  longitude: number
+  order: number
+}
+
+export interface GuidedTour {
+  name: string
+  description: string
+  duration: number
+  stops: TourStop[]
+}
+
+export interface ActivitySuggestionsResponse {
+  location: string
+  activities: ActivitySuggestion[]
+  guided_tour?: GuidedTour
 }
 
 // App Settings

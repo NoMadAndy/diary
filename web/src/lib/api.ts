@@ -203,8 +203,33 @@ class APIService {
   }
 
   async getDailySummary(date: string): Promise<AISummaryResponse> {
-    return this.post<AISummaryResponse>('/api/v1/ai/daily-summary', {
+    return this.post<AISummaryResponse>('/api/v1/ai/summarize_day', {
       date,
+      include_entries: true,
+      include_tracks: true,
+      include_media: true,
+    })
+  }
+
+  async getMultiDaySummary(startDate: string, endDate: string): Promise<MultiDaySummaryResponse> {
+    return this.post<MultiDaySummaryResponse>('/api/v1/ai/summarize_period', {
+      start_date: startDate,
+      end_date: endDate,
+      include_photos: true,
+      include_tracks: true,
+      include_sensors: true,
+    })
+  }
+
+  async suggestActivities(
+    latitude: number,
+    longitude: number,
+    interests?: string[]
+  ): Promise<ActivitySuggestionsResponse> {
+    return this.post<ActivitySuggestionsResponse>('/api/v1/ai/suggest_activities', {
+      latitude,
+      longitude,
+      interests,
     })
   }
 
